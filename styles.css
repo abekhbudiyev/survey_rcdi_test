@@ -416,6 +416,12 @@ label { display: flex; flex-direction: column; gap: 6px; }
   border-radius: 10px;
 }
 
+.qa-wrap table td,
+.qa-wrap table th {
+  font-size: 12px;
+  vertical-align: top;
+}
+
 .ans-good {
   background: #e7f8ec;
   color: #136636;

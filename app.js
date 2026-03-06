@@ -39,6 +39,7 @@ const el = {
   algoContradictions: document.getElementById("algoContradictions"),
   algoRecommendations: document.getElementById("algoRecommendations"),
   algoAnswers: document.getElementById("algoAnswers"),
+  calcLog: document.getElementById("calcLog"),
   qaSummary: document.getElementById("qaSummary"),
   qaBody: document.getElementById("qaBody"),
   editChildBtn: document.getElementById("editChildBtn"),
@@ -103,6 +104,10 @@ function monthsBetween(birthDate, targetDate) {
 
 function achieved(answer) {
   return answer === 1 || answer === 2;
+}
+
+function awardedPoint(answer) {
+  return achieved(answer) ? 1 : 0;
 }
 
 function nearestAgeByPoints(rows, field, points, factualAge, fallbackDelta = 0) {
@@ -273,6 +278,8 @@ function buildQuestionAudit(test) {
     const ans = answers[i];
     const meta = answerMeta(ans);
     const domain = domainByQ.get(i) || q.Domain || "-";
+    const givenPoint = awardedPoint(ans);
+    const alternatives = "[0]=0, [1]=1, [2]=1, [3]=0";
     let impact = "—";
     let status = ans === 0 ? "Javobsiz" : "Javob berilgan";
 
@@ -303,6 +310,8 @@ function buildQuestionAudit(test) {
         <td>${escHtml(text)}</td>
         <td>${escHtml(domain)}</td>
         <td><span class="mini-badge ${meta.cls}">${escHtml(meta.text)}</span></td>
+        <td><strong>${givenPoint}</strong></td>
+        <td>${alternatives}</td>
         <td>${status}</td>
         <td>${impact}</td>
       </tr>`
@@ -313,6 +322,58 @@ function buildQuestionAudit(test) {
     ? `Javobsiz: ${unanswered}. Alohida punktlar bo'yicha taxminiy o'sish: ~${round1(positiveImpact)} oy (chiziqli yig'ilmaydi).`
     : `Javobsiz: ${unanswered}. So'rovnoma turlari bo'yicha taxminiy o'sish: ~${round1(positiveImpact)} oy.`;
   return { summary, rowsHtml: rows.join("") };
+}
+
+function buildCalculationLog(test) {
+  const questions = test.scale === "KID" ? state.ref.KIDqs : state.ref.CDIqs;
+  const dms = test.scale === "KID" ? state.ref.KIDdms : state.ref.CDIdms;
+  const child = getChildById(test.childId);
+  if (!child || !child.birthDate) {
+    return "Hisoblash logi uchun bola ma'lumoti yetarli emas.";
+  }
+
+  const answers = parseAnswersToArray(test.answers, questions.length);
+  const factualAge = monthsBetween(child.birthDate, test.testDate);
+  const domainByQ = new Map(dms.map((x) => [Number(x.ID), x.Domain]));
+  const domainBucket = new Map();
+
+  for (let i = 1; i <= questions.length; i++) {
+    const domain = domainByQ.get(i) || questions[i - 1].Domain || "-";
+    const point = awardedPoint(answers[i]);
+    if (!domainBucket.has(domain)) domainBucket.set(domain, { pts: 0, items: [] });
+    const rec = domainBucket.get(domain);
+    rec.pts += point;
+    rec.items.push(`${i}:${answers[i]}=>${point}`);
+  }
+
+  const lines = [];
+  lines.push(`Test ID: ${test.id}`);
+  lines.push(`Shkala: ${test.scale}`);
+  lines.push(`Haqiqiy yosh = monthsBetween(${child.birthDate}, ${test.testDate}) = ${factualAge} oy`);
+  lines.push("Qoida: [1]/[2] => 1 ball, [0]/[3] => 0 ball");
+  lines.push("");
+  lines.push("So'rovnoma turi bo'yicha ball yig'indisi:");
+  for (const [domain, info] of domainBucket.entries()) {
+    lines.push(`- ${domain}: ${info.pts} ball | Savollar: ${info.items.join(", ")}`);
+  }
+  lines.push("");
+  if (test.scale === "KID") {
+    const totalPoints = answers.slice(1).reduce((n, x) => n + awardedPoint(x), 0);
+    lines.push(`KID umumiy ball = ${totalPoints}`);
+    lines.push(`KID total yosh = nearestAgeByPoints(KID_Full.p50, ${totalPoints}, ${factualAge}) = ${test.result.totalAge} oy`);
+    lines.push(`Sigma = ${test.result.sigma} (KID_Full p85/p96/p98 chegaralari asosida)`);
+  } else {
+    const sexSuffix = child.sex === "мужской" ? "B" : "G";
+    lines.push(`CDI jins suffix: ${sexSuffix} (erkak=B, ayol=G)`);
+    lines.push("Har turda yosh: nearestAgeByPoints(CDI_.*N, ball, factualAge), daraja: *W/*L");
+  }
+  lines.push("");
+  lines.push("Risk qoidasi:");
+  lines.push("- Yuqori xavf: sigma>=96 yoki katta farq");
+  lines.push("- O'rtacha xavf: sigma/level o'rtacha zona yoki ko'p qarama-qarshilik");
+  lines.push("- Qayta tekshirish: bo'sh javoblar > 3");
+  lines.push(`Natija: ${riskGrade(test)}`);
+  return lines.join("\n");
 }
 
 function recommendationsForTest(test) {
@@ -346,6 +407,7 @@ function renderAlgoPanel(test) {
     el.resultSnapshot.classList.add("hidden");
     el.qaSummary.textContent = "";
     el.qaBody.innerHTML = "";
+    el.calcLog.textContent = "";
     return;
   }
   el.algoPanel.classList.remove("hidden");
@@ -423,7 +485,8 @@ function renderAlgoPanel(test) {
 
   const qa = buildQuestionAudit(test);
   el.qaSummary.textContent = qa.summary;
-  el.qaBody.innerHTML = qa.rowsHtml || `<tr><td colspan="6">Ma'lumot yetarli emas.</td></tr>`;
+  el.qaBody.innerHTML = qa.rowsHtml || `<tr><td colspan="8">Ma'lumot yetarli emas.</td></tr>`;
+  el.calcLog.textContent = buildCalculationLog(test);
 }
 
 function renderChildDetail() {
