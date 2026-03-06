@@ -28,14 +28,19 @@ const el = {
   kpiHigh: document.getElementById("kpiHigh"),
   kpiMid: document.getElementById("kpiMid"),
   kpiGood: document.getElementById("kpiGood"),
+  resultSnapshot: document.getElementById("resultSnapshot"),
+  snapshotBody: document.getElementById("snapshotBody"),
   testHistory: document.getElementById("testHistory"),
   algoPanel: document.getElementById("algoPanel"),
   algoBadge: document.getElementById("algoBadge"),
   algoTop: document.getElementById("algoTop"),
+  algoSteps: document.getElementById("algoSteps"),
   algoDomainTable: document.getElementById("algoDomainTable"),
   algoContradictions: document.getElementById("algoContradictions"),
   algoRecommendations: document.getElementById("algoRecommendations"),
   algoAnswers: document.getElementById("algoAnswers"),
+  qaSummary: document.getElementById("qaSummary"),
+  qaBody: document.getElementById("qaBody"),
   editChildBtn: document.getElementById("editChildBtn"),
   startKidBtn: document.getElementById("startKidBtn"),
   startCdiBtn: document.getElementById("startCdiBtn"),
@@ -70,6 +75,14 @@ function toArray(v) {
 
 function round1(n) {
   return Math.round(n * 10) / 10;
+}
+
+function escHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;");
 }
 
 function monthsBetween(birthDate, targetDate) {
@@ -216,6 +229,91 @@ function riskClass(grade) {
   return "risk-good";
 }
 
+function answerMeta(v) {
+  if (v === 1) return { text: "[1] делает недавно", cls: "ans-good" };
+  if (v === 2) return { text: "[2] делает давно", cls: "ans-good" };
+  if (v === 3) return { text: "[3] никогда", cls: "ans-bad" };
+  return { text: "[0] без ответа", cls: "ans-na" };
+}
+
+function parseAnswersToArray(raw, count) {
+  const arr = Array(count + 1).fill(0);
+  const s = String(raw || "");
+  for (let i = 1; i <= count; i++) {
+    const ch = s[i - 1];
+    const n = Number(ch);
+    arr[i] = Number.isInteger(n) && n >= 0 && n <= 3 ? n : 0;
+  }
+  return arr;
+}
+
+function computeScoreByScale(scale, answers, child, testDate) {
+  const run = { scale, answers, child, testDate };
+  return scale === "KID" ? scoreKID(run) : scoreCDI(run);
+}
+
+function buildQuestionAudit(test) {
+  const questions = test.scale === "KID" ? state.ref.KIDqs : state.ref.CDIqs;
+  const dms = test.scale === "KID" ? state.ref.KIDdms : state.ref.CDIdms;
+  const child = getChildById(test.childId);
+  if (!child || !child.birthDate) {
+    return { summary: "Недостаточно данных ребенка для расчета влияния.", rowsHtml: "" };
+  }
+
+  const domainByQ = new Map(dms.map((x) => [Number(x.ID), x.Domain]));
+  const answers = parseAnswersToArray(test.answers, questions.length);
+  const base = computeScoreByScale(test.scale, answers, child, test.testDate);
+  let unanswered = 0;
+  let positiveImpact = 0;
+  const rows = [];
+
+  for (let i = 1; i <= questions.length; i++) {
+    const q = questions[i - 1];
+    const text = (q.Text ?? q.Question ?? "").trim();
+    const ans = answers[i];
+    const meta = answerMeta(ans);
+    const domain = domainByQ.get(i) || q.Domain || "-";
+    let impact = "—";
+    let status = ans === 0 ? "Нет ответа" : "Ответ получен";
+
+    if (ans === 0) {
+      unanswered += 1;
+      const sim = [...answers];
+      sim[i] = 2;
+      const simRes = computeScoreByScale(test.scale, sim, child, test.testDate);
+      if (test.scale === "KID") {
+        const totalDelta = round1((simRes.totalAge || 0) - (base.totalAge || 0));
+        const baseDom = (base.domainAges || []).find((d) => d.name === domain);
+        const simDom = (simRes.domainAges || []).find((d) => d.name === domain);
+        const domDelta = round1((simDom?.age || 0) - (baseDom?.age || 0));
+        impact = `+${totalDelta} мес (итог), +${domDelta} мес (${escHtml(domain)})`;
+        if (totalDelta > 0) positiveImpact += totalDelta;
+      } else {
+        const baseDom = (base.domainAges || []).find((d) => d.name === domain);
+        const simDom = (simRes.domainAges || []).find((d) => d.name === domain);
+        const domDelta = round1((simDom?.age || 0) - (baseDom?.age || 0));
+        impact = `+${domDelta} мес (${escHtml(domain)})`;
+        if (domDelta > 0) positiveImpact += domDelta;
+      }
+    }
+
+    rows.push(
+      `<tr>
+        <td>${i}</td>
+        <td>${escHtml(text)}</td>
+        <td><span class="mini-badge ${meta.cls}">${escHtml(meta.text)}</span></td>
+        <td>${status}</td>
+        <td>${impact}</td>
+      </tr>`
+    );
+  }
+
+  const summary = test.scale === "KID"
+    ? `Без ответа: ${unanswered}. Потенциал прироста по отдельным пунктам: ~${round1(positiveImpact)} мес (не суммируется линейно).`
+    : `Без ответа: ${unanswered}. Потенциал доменного прироста: ~${round1(positiveImpact)} мес (оценочно).`;
+  return { summary, rowsHtml: rows.join("") };
+}
+
 function recommendationsForTest(test) {
   const rec = [];
   const grade = riskGrade(test);
@@ -244,9 +342,13 @@ function recommendationsForTest(test) {
 function renderAlgoPanel(test) {
   if (!test) {
     el.algoPanel.classList.add("hidden");
+    el.resultSnapshot.classList.add("hidden");
+    el.qaSummary.textContent = "";
+    el.qaBody.innerHTML = "";
     return;
   }
   el.algoPanel.classList.remove("hidden");
+  el.resultSnapshot.classList.remove("hidden");
   const grade = riskGrade(test);
   el.algoBadge.textContent = `${test.scale} | ${grade}`;
   el.algoBadge.className = `badge ${riskClass(grade)}`;
@@ -266,6 +368,32 @@ function renderAlgoPanel(test) {
   ];
   if (test.scale === "KID") topItems.push(`Sigma: ${Number(test.result.sigma || 0)}`);
   el.algoTop.innerHTML = topItems.map((x) => `<span class="chip">${x}</span>`).join("");
+
+  const snapshot = [
+    `<strong>Дата:</strong> ${test.testDate}`,
+    `<strong>Шкала:</strong> ${test.scale}`,
+    `<strong>Риск:</strong> <span class="mini-badge ${riskClass(grade)}">${grade}</span>`,
+    test.scale === "KID"
+      ? `<strong>Итог KID:</strong> ${test.result.totalAge} мес, sigma ${Number(test.result.sigma || 0)}`
+      : `<strong>Итог CDI:</strong> доменные оценки ${test.result.domainAges.map((d) => d.age).join(" / ")} мес`,
+  ];
+  el.snapshotBody.innerHTML = snapshot.join("<br>");
+
+  const steps = test.scale === "KID"
+    ? [
+        "1) Har domen bo‘yicha 1/2 javoblar soni ball sifatida olinadi.",
+        "2) Ball p50 jadvali (KID_1..5) bilan solishtirilib domen yoshi tanlanadi.",
+        "3) To‘liq ball KID_Full p50 orqali umumiy yoshga o‘tkaziladi.",
+        "4) Sigma: p85/p96/p98 chegaralari bo‘yicha hisoblanadi.",
+        "5) NA va qarama-qarshiliklar risk bahosiga qo‘shiladi.",
+      ]
+    : [
+        "1) Har domen bo‘yicha 1/2 javoblar ball hisoblanadi.",
+        "2) Jinsga mos ustunlar (SO/SE/GR/FI/EX/LA + B/G) ishlatiladi.",
+        "3) N ustuni bo‘yicha domen yoshi, W/L bo‘yicha level aniqlanadi.",
+        "4) NA va qarama-qarshiliklar risk bahosiga qo‘shiladi.",
+      ];
+  el.algoSteps.innerHTML = `<h4>Логика расчета (qadamlar)</h4>${steps.map((s) => `<div class=\"step-line\">${s}</div>`).join("")}`;
 
   const rows = test.result.domainAges || [];
   const hasLevel = rows.some((d) => typeof d.level !== "undefined");
@@ -291,6 +419,10 @@ function renderAlgoPanel(test) {
   const rec = recommendationsForTest(test);
   el.algoRecommendations.innerHTML = rec.map((x) => `<div>• ${x}</div>`).join("");
   el.algoAnswers.textContent = test.answers || "";
+
+  const qa = buildQuestionAudit(test);
+  el.qaSummary.textContent = qa.summary;
+  el.qaBody.innerHTML = qa.rowsHtml || `<tr><td colspan="5">Данные недоступны.</td></tr>`;
 }
 
 function renderChildDetail() {

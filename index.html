@@ -64,6 +64,11 @@
           <span class="mini-badge risk-good">Норма</span>
         </div>
 
+        <section id="resultSnapshot" class="snapshot hidden">
+          <h3>Текущий выбранный результат</h3>
+          <div id="snapshotBody" class="card-lite"></div>
+        </section>
+
         <h3>Результаты</h3>
         <table>
           <thead>
@@ -85,6 +90,7 @@
             <span id="algoBadge" class="badge"></span>
           </div>
           <div id="algoTop" class="algo-top"></div>
+          <div id="algoSteps" class="algo-steps"></div>
           <div id="algoDomainTable"></div>
           <div class="algo-grid">
             <div>
@@ -96,6 +102,26 @@
               <div id="algoRecommendations" class="card-lite"></div>
             </div>
           </div>
+          <section class="qa-panel">
+            <div class="panel-head">
+              <h4>Аудит ответов по вопросам</h4>
+              <span id="qaSummary" class="chip"></span>
+            </div>
+            <div class="qa-wrap">
+              <table class="table-tight">
+                <thead>
+                  <tr>
+                    <th>№</th>
+                    <th>Вопрос</th>
+                    <th>Ответ</th>
+                    <th>Статус</th>
+                    <th>Влияние (если без ответа)</th>
+                  </tr>
+                </thead>
+                <tbody id="qaBody"></tbody>
+              </table>
+            </div>
+          </section>
           <details>
             <summary>Сырые ответы</summary>
             <pre id="algoAnswers"></pre>

@@ -198,6 +198,10 @@ th {
   margin: 8px 0 14px;
 }
 
+.snapshot {
+  margin: 6px 0 14px;
+}
+
 .empty {
   color: var(--muted);
   font-size: 18px;
@@ -364,6 +368,20 @@ label { display: flex; flex-direction: column; gap: 6px; }
   margin: 6px 0 10px;
 }
 
+.algo-steps {
+  margin: 2px 0 12px;
+  border: 1px dashed #c9d9ea;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 10px;
+}
+
+.step-line {
+  padding: 4px 0;
+  color: #1f3658;
+  font-size: 14px;
+}
+
 .chip {
   border: 1px solid #cfe0ef;
   border-radius: 999px;
@@ -385,6 +403,35 @@ label { display: flex; flex-direction: column; gap: 6px; }
   background: #fff;
   padding: 10px;
   min-height: 90px;
+}
+
+.qa-panel {
+  margin-top: 10px;
+}
+
+.qa-wrap {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.ans-good {
+  background: #e7f8ec;
+  color: #136636;
+  border: 1px solid #bde8c8;
+}
+
+.ans-bad {
+  background: #ffe9e9;
+  color: #a11212;
+  border: 1px solid #ffbcbc;
+}
+
+.ans-na {
+  background: #eef2f8;
+  color: #485d7a;
+  border: 1px solid #ccd8ea;
 }
 
 .pair {
