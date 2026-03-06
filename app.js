@@ -40,6 +40,7 @@ const el = {
   algoRecommendations: document.getElementById("algoRecommendations"),
   algoAnswers: document.getElementById("algoAnswers"),
   calcLog: document.getElementById("calcLog"),
+  deepLog: document.getElementById("deepLog"),
   qaSummary: document.getElementById("qaSummary"),
   qaBody: document.getElementById("qaBody"),
   editChildBtn: document.getElementById("editChildBtn"),
@@ -257,6 +258,42 @@ function computeScoreByScale(scale, answers, child, testDate) {
   return scale === "KID" ? scoreKID(run) : scoreCDI(run);
 }
 
+function contradictionDetails(scale, answers) {
+  const rows = scale === "KID" ? state.ref.KIDcontr : state.ref.CDIcontr;
+  const lines = [];
+  let count = 0;
+  for (let i = 0; i + 1 < rows.length; i += 2) {
+    const q1 = Number(rows[i].Num);
+    const q2 = Number(rows[i + 1].Num);
+    const a1 = answers[q1];
+    const a2 = answers[q2];
+    const bad = a1 === 3 && (a2 === 1 || a2 === 2);
+    if (bad) count += 1;
+    lines.push(`- ${q1}-${q2}: [${a1}] vs [${a2}] => ${bad ? "QARAMA-QARSHI" : "ok"}`);
+  }
+  return { count, lines };
+}
+
+function sourceTablesFor(scale, sex) {
+  if (scale === "KID") {
+    return [
+      "Savollar: KIDqs",
+      "So'rovnoma turi map: KIDdms",
+      "Qarama-qarshi juftlar: KIDcontr",
+      "Yosh normasi: KID_1Cogn, KID_2Mot, KID_3Lang, KID_4Self, KID_5Soc",
+      "Umumiy yosh/sigma: KID_Full (p50, p85, p96, p98)",
+    ];
+  }
+  const suffix = sex === "мужской" ? "B" : "G";
+  return [
+    "Savollar: CDIqs",
+    "So'rovnoma turi map: CDIdms",
+    "Qarama-qarshi juftlar: CDIcontr",
+    `Yosh normasi: CDI_ (*${suffix}N)`,
+    `Daraja: CDI_ (*${suffix}W, *${suffix}L)`,
+  ];
+}
+
 function buildQuestionAudit(test) {
   const questions = test.scale === "KID" ? state.ref.KIDqs : state.ref.CDIqs;
   const dms = test.scale === "KID" ? state.ref.KIDdms : state.ref.CDIdms;
@@ -279,7 +316,26 @@ function buildQuestionAudit(test) {
     const meta = answerMeta(ans);
     const domain = domainByQ.get(i) || q.Domain || "-";
     const givenPoint = awardedPoint(ans);
-    const alternatives = "[0]=0, [1]=1, [2]=1, [3]=0";
+    const effects = [];
+    for (const option of [0, 1, 2, 3]) {
+      const sim = [...answers];
+      sim[i] = option;
+      const simRes = computeScoreByScale(test.scale, sim, child, test.testDate);
+      if (test.scale === "KID") {
+        const d0 = (base.domainAges || []).find((d) => d.name === domain);
+        const d1 = (simRes.domainAges || []).find((d) => d.name === domain);
+        const dt = round1((simRes.totalAge || 0) - (base.totalAge || 0));
+        const dd = round1((d1?.age || 0) - (d0?.age || 0));
+        effects.push(`[${option}]:${awardedPoint(option)}b Δtotal=${dt}, Δ${domain}=${dd}`);
+      } else {
+        const d0 = (base.domainAges || []).find((d) => d.name === domain);
+        const d1 = (simRes.domainAges || []).find((d) => d.name === domain);
+        const da = round1((d1?.age || 0) - (d0?.age || 0));
+        const dl = Number(d1?.level ?? 0) - Number(d0?.level ?? 0);
+        effects.push(`[${option}]:${awardedPoint(option)}b Δ${domain}=${da}, Δlvl=${dl}`);
+      }
+    }
+    const alternatives = effects.join(" | ");
     let impact = "—";
     let status = ans === 0 ? "Javobsiz" : "Javob berilgan";
 
@@ -352,6 +408,9 @@ function buildCalculationLog(test) {
   lines.push(`Haqiqiy yosh = monthsBetween(${child.birthDate}, ${test.testDate}) = ${factualAge} oy`);
   lines.push("Qoida: [1]/[2] => 1 ball, [0]/[3] => 0 ball");
   lines.push("");
+  lines.push("Manba jadvallar:");
+  for (const s of sourceTablesFor(test.scale, child.sex)) lines.push(`- ${s}`);
+  lines.push("");
   lines.push("So'rovnoma turi bo'yicha ball yig'indisi:");
   for (const [domain, info] of domainBucket.entries()) {
     lines.push(`- ${domain}: ${info.pts} ball | Savollar: ${info.items.join(", ")}`);
@@ -359,8 +418,15 @@ function buildCalculationLog(test) {
   lines.push("");
   if (test.scale === "KID") {
     const totalPoints = answers.slice(1).reduce((n, x) => n + awardedPoint(x), 0);
+    const recomputedTotalAge = round1(
+      nearestAgeByPoints(state.ref.KID_Full, "p50", totalPoints, factualAge)
+    );
     lines.push(`KID umumiy ball = ${totalPoints}`);
-    lines.push(`KID total yosh = nearestAgeByPoints(KID_Full.p50, ${totalPoints}, ${factualAge}) = ${test.result.totalAge} oy`);
+    lines.push(`KID total yosh (qayta hisob) = nearestAgeByPoints(KID_Full.p50, ${totalPoints}, ${factualAge}) = ${recomputedTotalAge} oy`);
+    lines.push(`KID total yosh (saqlangan natija) = ${test.result.totalAge} oy`);
+    if (Math.abs(Number(test.result.totalAge) - recomputedTotalAge) > 0.05) {
+      lines.push("Eslatma: saqlangan natija bilan qayta hisob o'rtasida farq bor (eski tizimdagi rounding/migratsiya ta'siri bo'lishi mumkin).");
+    }
     lines.push(`Sigma = ${test.result.sigma} (KID_Full p85/p96/p98 chegaralari asosida)`);
   } else {
     const sexSuffix = child.sex === "мужской" ? "B" : "G";
@@ -373,6 +439,82 @@ function buildCalculationLog(test) {
   lines.push("- O'rtacha xavf: sigma/level o'rtacha zona yoki ko'p qarama-qarshilik");
   lines.push("- Qayta tekshirish: bo'sh javoblar > 3");
   lines.push(`Natija: ${riskGrade(test)}`);
+  return lines.join("\n");
+}
+
+function buildDeepTraceLog(test) {
+  const questions = test.scale === "KID" ? state.ref.KIDqs : state.ref.CDIqs;
+  const dms = test.scale === "KID" ? state.ref.KIDdms : state.ref.CDIdms;
+  const child = getChildById(test.childId);
+  if (!child || !child.birthDate) return "Deep trace uchun bola ma'lumoti yetarli emas.";
+
+  const answers = parseAnswersToArray(test.answers, questions.length);
+  const base = computeScoreByScale(test.scale, answers, child, test.testDate);
+  const factualAge = monthsBetween(child.birthDate, test.testDate);
+  const domainByQ = new Map(dms.map((x) => [Number(x.ID), x.Domain]));
+  const lines = [];
+
+  lines.push("=== META ===");
+  lines.push(`testId=${test.id}, scale=${test.scale}, testDate=${test.testDate}, factualAge=${factualAge}`);
+  lines.push(`risk=${riskGrade(test)}, na=${test.naCount}, contradictions=${(test.contradictions || []).length}`);
+  lines.push("");
+
+  lines.push("=== MANBA JADVALLAR ===");
+  for (const s of sourceTablesFor(test.scale, child.sex)) lines.push(`* ${s}`);
+  lines.push("");
+
+  lines.push("=== ASOSIY FORMULA ===");
+  lines.push("* Savol balli: [1]/[2] => 1, [0]/[3] => 0");
+  lines.push("* So'rovnoma turi balli = shu turdagi savollar balli yig'indisi");
+  lines.push("* KID: yosh = nearestAgeByPoints(KID_*.p50), total yosh = nearestAgeByPoints(KID_Full.p50)");
+  lines.push("* CDI: yosh = nearestAgeByPoints(CDI_.*N), level = W/L chegaralari");
+  lines.push("");
+
+  lines.push("=== QARAMA-QARSHILIK JUFТLAR ===");
+  const ctr = contradictionDetails(test.scale, answers);
+  lines.push(`Jami: ${ctr.count}`);
+  for (const l of ctr.lines) lines.push(l);
+  lines.push("");
+
+  lines.push("=== SAVOL BO'YICHA TRACE (0/1/2/3) ===");
+  for (let i = 1; i <= questions.length; i++) {
+    const q = questions[i - 1];
+    const qText = (q.Text ?? q.Question ?? "").trim();
+    const domain = domainByQ.get(i) || q.Domain || "-";
+    const cur = answers[i];
+    lines.push(`Q${i} [${domain}] "${qText}"`);
+    lines.push(`- Joriy javob: [${cur}] => ${awardedPoint(cur)} ball`);
+    for (const option of [0, 1, 2, 3]) {
+      const sim = [...answers];
+      sim[i] = option;
+      const simRes = computeScoreByScale(test.scale, sim, child, test.testDate);
+      if (test.scale === "KID") {
+        const d0 = (base.domainAges || []).find((d) => d.name === domain);
+        const d1 = (simRes.domainAges || []).find((d) => d.name === domain);
+        const dt = round1((simRes.totalAge || 0) - (base.totalAge || 0));
+        const dd = round1((d1?.age || 0) - (d0?.age || 0));
+        lines.push(`  option[${option}] => ${awardedPoint(option)}b | ΔtotalAge=${dt} | Δ${domain}=${dd}`);
+      } else {
+        const d0 = (base.domainAges || []).find((d) => d.name === domain);
+        const d1 = (simRes.domainAges || []).find((d) => d.name === domain);
+        const da = round1((d1?.age || 0) - (d0?.age || 0));
+        const dl = Number(d1?.level ?? 0) - Number(d0?.level ?? 0);
+        lines.push(`  option[${option}] => ${awardedPoint(option)}b | Δ${domain}Age=${da} | Δlevel=${dl}`);
+      }
+    }
+    lines.push("");
+  }
+
+  lines.push("=== YAKUNIY NATIJA ===");
+  if (test.scale === "KID") {
+    lines.push(`totalPoints=${base.totalPoints}, totalAge=${base.totalAge}, sigma=${base.sigma}`);
+  } else {
+    lines.push("CDI domain natijalari:");
+    for (const d of base.domainAges || []) {
+      lines.push(`- ${d.name}: points=${d.points}, age=${d.age}, level=${d.level}`);
+    }
+  }
+
   return lines.join("\n");
 }
 
@@ -487,6 +629,7 @@ function renderAlgoPanel(test) {
   el.qaSummary.textContent = qa.summary;
   el.qaBody.innerHTML = qa.rowsHtml || `<tr><td colspan="8">Ma'lumot yetarli emas.</td></tr>`;
   el.calcLog.textContent = buildCalculationLog(test);
+  el.deepLog.textContent = buildDeepTraceLog(test);
 }
 
 function renderChildDetail() {
