@@ -1,8 +1,8 @@
 ﻿const ANSWERS = [
-  { value: 0, label: "[0] без ответа" },
-  { value: 1, label: "[1] делает это недавно" },
-  { value: 2, label: "[2] делает это давно" },
-  { value: 3, label: "[3] никогда" },
+  { value: 0, label: "[0] javobsiz" },
+  { value: 1, label: "[1] yaqinda qila boshlagan" },
+  { value: 2, label: "[2] anchadan beri qila oladi" },
+  { value: 3, label: "[3] hech qachon" },
 ];
 
 const state = {
@@ -184,7 +184,7 @@ function renderChildren() {
   for (const c of items) {
     const li = document.createElement("li");
     if (c.id === state.selectedChildId) li.classList.add("active");
-    const fullName = `${c.surname || ""} ${c.name || ""}`.trim() || "Без имени";
+    const fullName = `${c.surname || ""} ${c.name || ""}`.trim() || "Ism kiritilmagan";
     li.innerHTML = `<div class="list-title">${fullName}</div><div class="list-meta">${c.birthDate || "-"} | ${c.sex || "-"}</div>`;
     li.onclick = () => {
       state.selectedChildId = c.id;
@@ -197,9 +197,9 @@ function renderChildren() {
 
 function testSummary(t) {
   if (t.scale === "KID") {
-    return `Полная шкала: ${t.result.totalAge} мес, sigma ${t.result.sigma}`;
+    return `To'liq shkala: ${t.result.totalAge} oy, sigma ${t.result.sigma}`;
   }
-  return `Домены: ${t.result.domainAges.map((x) => x.age).join(" / ")} мес`;
+  return `So'rovnoma turlari: ${t.result.domainAges.map((x) => x.age).join(" / ")} oy`;
 }
 
 function riskGrade(test) {
@@ -210,30 +210,30 @@ function riskGrade(test) {
 
   if (test.scale === "KID") {
     const sigma = Number(test.result.sigma || 0);
-    if (sigma >= 96 || maxLag >= 6) return "Высокий риск";
-    if (sigma >= 85 || maxLag >= 3 || contradictionCount > 6) return "Умеренный риск";
-    if (naCount > 3) return "Нужно перепроверить";
-    return "Норма / близко к норме";
+    if (sigma >= 96 || maxLag >= 6) return "Yuqori xavf";
+    if (sigma >= 85 || maxLag >= 3 || contradictionCount > 6) return "O'rtacha xavf";
+    if (naCount > 3) return "Qayta tekshirish kerak";
+    return "Yaxshi holat";
   }
 
   const maxLevel = Math.max(0, ...((test.result.domainAges || []).map((d) => Number(d.level || 0))));
-  if (maxLevel >= 96 || maxLag >= 8) return "Высокий риск";
-  if (maxLevel >= 85 || maxLag >= 4 || contradictionCount > 6) return "Умеренный риск";
-  if (naCount > 3) return "Нужно перепроверить";
-  return "Норма / близко к норме";
+  if (maxLevel >= 96 || maxLag >= 8) return "Yuqori xavf";
+  if (maxLevel >= 85 || maxLag >= 4 || contradictionCount > 6) return "O'rtacha xavf";
+  if (naCount > 3) return "Qayta tekshirish kerak";
+  return "Yaxshi holat";
 }
 
 function riskClass(grade) {
-  if (grade === "Высокий риск") return "risk-danger";
-  if (grade === "Умеренный риск" || grade === "Нужно перепроверить") return "risk-warning";
+  if (grade === "Yuqori xavf") return "risk-danger";
+  if (grade === "O'rtacha xavf" || grade === "Qayta tekshirish kerak") return "risk-warning";
   return "risk-good";
 }
 
 function answerMeta(v) {
-  if (v === 1) return { text: "[1] делает недавно", cls: "ans-good" };
-  if (v === 2) return { text: "[2] делает давно", cls: "ans-good" };
-  if (v === 3) return { text: "[3] никогда", cls: "ans-bad" };
-  return { text: "[0] без ответа", cls: "ans-na" };
+  if (v === 1) return { text: "[1] yaqinda qila boshlagan", cls: "ans-good" };
+  if (v === 2) return { text: "[2] anchadan beri qila oladi", cls: "ans-good" };
+  if (v === 3) return { text: "[3] hech qachon", cls: "ans-bad" };
+  return { text: "[0] javobsiz", cls: "ans-na" };
 }
 
 function parseAnswersToArray(raw, count) {
@@ -257,7 +257,7 @@ function buildQuestionAudit(test) {
   const dms = test.scale === "KID" ? state.ref.KIDdms : state.ref.CDIdms;
   const child = getChildById(test.childId);
   if (!child || !child.birthDate) {
-    return { summary: "Недостаточно данных ребенка для расчета влияния.", rowsHtml: "" };
+    return { summary: "Ta'sirni hisoblash uchun bola ma'lumoti yetarli emas.", rowsHtml: "" };
   }
 
   const domainByQ = new Map(dms.map((x) => [Number(x.ID), x.Domain]));
@@ -274,7 +274,7 @@ function buildQuestionAudit(test) {
     const meta = answerMeta(ans);
     const domain = domainByQ.get(i) || q.Domain || "-";
     let impact = "—";
-    let status = ans === 0 ? "Нет ответа" : "Ответ получен";
+    let status = ans === 0 ? "Javobsiz" : "Javob berilgan";
 
     if (ans === 0) {
       unanswered += 1;
@@ -286,13 +286,13 @@ function buildQuestionAudit(test) {
         const baseDom = (base.domainAges || []).find((d) => d.name === domain);
         const simDom = (simRes.domainAges || []).find((d) => d.name === domain);
         const domDelta = round1((simDom?.age || 0) - (baseDom?.age || 0));
-        impact = `+${totalDelta} мес (итог), +${domDelta} мес (${escHtml(domain)})`;
+        impact = `+${totalDelta} oy (yakun), +${domDelta} oy (${escHtml(domain)}) [manba: KID_Full p50 + KID_* p50]`;
         if (totalDelta > 0) positiveImpact += totalDelta;
       } else {
         const baseDom = (base.domainAges || []).find((d) => d.name === domain);
         const simDom = (simRes.domainAges || []).find((d) => d.name === domain);
         const domDelta = round1((simDom?.age || 0) - (baseDom?.age || 0));
-        impact = `+${domDelta} мес (${escHtml(domain)})`;
+        impact = `+${domDelta} oy (${escHtml(domain)}) [manba: CDI_ N ustuni]`;
         if (domDelta > 0) positiveImpact += domDelta;
       }
     }
@@ -301,6 +301,7 @@ function buildQuestionAudit(test) {
       `<tr>
         <td>${i}</td>
         <td>${escHtml(text)}</td>
+        <td>${escHtml(domain)}</td>
         <td><span class="mini-badge ${meta.cls}">${escHtml(meta.text)}</span></td>
         <td>${status}</td>
         <td>${impact}</td>
@@ -309,8 +310,8 @@ function buildQuestionAudit(test) {
   }
 
   const summary = test.scale === "KID"
-    ? `Без ответа: ${unanswered}. Потенциал прироста по отдельным пунктам: ~${round1(positiveImpact)} мес (не суммируется линейно).`
-    : `Без ответа: ${unanswered}. Потенциал доменного прироста: ~${round1(positiveImpact)} мес (оценочно).`;
+    ? `Javobsiz: ${unanswered}. Alohida punktlar bo'yicha taxminiy o'sish: ~${round1(positiveImpact)} oy (chiziqli yig'ilmaydi).`
+    : `Javobsiz: ${unanswered}. So'rovnoma turlari bo'yicha taxminiy o'sish: ~${round1(positiveImpact)} oy.`;
   return { summary, rowsHtml: rows.join("") };
 }
 
@@ -320,22 +321,22 @@ function recommendationsForTest(test) {
   const lagValues = (test.result.domainAges || []).map((d) => Number(d.lag ?? (test.factualAge - d.age))).filter(Number.isFinite);
   const maxLag = lagValues.length ? Math.max(...lagValues) : 0;
 
-  if (grade === "Высокий риск") {
-    rec.push("Нужна очная консультация профильного специалиста и план раннего вмешательства.");
-    rec.push("Повторить оценку через 1-2 месяца для контроля динамики.");
-  } else if (grade === "Умеренный риск") {
-    rec.push("Рекомендуется развивающая программа дома и у специалиста.");
-    rec.push("Повторный тест через 2-3 месяца.");
-  } else if (grade === "Нужно перепроверить") {
-    rec.push("Слишком много пропусков или неоднозначностей, лучше перепройти тест.");
+  if (grade === "Yuqori xavf") {
+    rec.push("Mutaxassis bilan tezkor uchrashuv va erta aralashuv rejasi kerak.");
+    rec.push("Dinamikani nazorat qilish uchun 1-2 oyda qayta baholash.");
+  } else if (grade === "O'rtacha xavf") {
+    rec.push("Uy sharoiti va mutaxassis bilan rivojlantiruvchi dastur tavsiya etiladi.");
+    rec.push("2-3 oyda qayta test topshirish.");
+  } else if (grade === "Qayta tekshirish kerak") {
+    rec.push("Bo'sh yoki noaniq javoblar ko'p, testni qayta to'ldirish tavsiya etiladi.");
   } else {
-    rec.push("Динамика близка к возрастной норме. Поддерживайте регулярные развивающие занятия.");
-    rec.push("Контрольный тест планово через 4-6 месяцев.");
+    rec.push("Natija yosh normasiga yaqin. Muntazam rivojlantiruvchi mashg'ulotlarni davom ettiring.");
+    rec.push("4-6 oyda reja asosida nazorat testi.");
   }
 
-  if (maxLag >= 4) rec.push("Сфокусировать занятия на доменах с наибольшим отставанием.");
-  if ((test.contradictions || []).length > 6) rec.push("Уточнить противоречивые ответы у информатора.");
-  if ((test.naCount || 0) > 3) rec.push("Сократить число пустых ответов при следующем тестировании.");
+  if (maxLag >= 4) rec.push("Mashg'ulotlarni eng ko'p ortda qolgan so'rovnoma turiga yo'naltiring.");
+  if ((test.contradictions || []).length > 6) rec.push("Qarama-qarshi javoblarni ma'lumot beruvchi bilan qayta tekshiring.");
+  if ((test.naCount || 0) > 3) rec.push("Keyingi testda bo'sh javoblar sonini kamaytiring.");
   return rec;
 }
 
@@ -360,53 +361,53 @@ function renderAlgoPanel(test) {
   const maxGap = gap.length ? round1(Math.max(...gap)) : 0;
 
   const topItems = [
-    `Факт. возраст: ${test.factualAge} мес`,
-    `Без ответов: ${test.naCount}`,
-    `Противоречий: ${(test.contradictions || []).length}`,
-    `Средний разрыв: ${avgGap} мес`,
-    `Макс. разрыв: ${maxGap} мес`,
+    `Haqiqiy yosh: ${test.factualAge} oy`,
+    `Bo'sh javob: ${test.naCount}`,
+    `Qarama-qarshilik: ${(test.contradictions || []).length}`,
+    `O'rtacha farq: ${avgGap} oy`,
+    `Maks. farq: ${maxGap} oy`,
   ];
   if (test.scale === "KID") topItems.push(`Sigma: ${Number(test.result.sigma || 0)}`);
   el.algoTop.innerHTML = topItems.map((x) => `<span class="chip">${x}</span>`).join("");
 
   const snapshot = [
-    `<strong>Дата:</strong> ${test.testDate}`,
-    `<strong>Шкала:</strong> ${test.scale}`,
-    `<strong>Риск:</strong> <span class="mini-badge ${riskClass(grade)}">${grade}</span>`,
+    `<strong>Sana:</strong> ${test.testDate}`,
+    `<strong>Shkala:</strong> ${test.scale}`,
+    `<strong>Xavf holati:</strong> <span class="mini-badge ${riskClass(grade)}">${grade}</span>`,
     test.scale === "KID"
-      ? `<strong>Итог KID:</strong> ${test.result.totalAge} мес, sigma ${Number(test.result.sigma || 0)}`
-      : `<strong>Итог CDI:</strong> доменные оценки ${test.result.domainAges.map((d) => d.age).join(" / ")} мес`,
+      ? `<strong>KID yakun:</strong> ${test.result.totalAge} oy, sigma ${Number(test.result.sigma || 0)}`
+      : `<strong>CDI yakun:</strong> so'rovnoma turlari bahosi ${test.result.domainAges.map((d) => d.age).join(" / ")} oy`,
   ];
   el.snapshotBody.innerHTML = snapshot.join("<br>");
 
   const steps = test.scale === "KID"
     ? [
-        "1) Har domen bo‘yicha 1/2 javoblar soni ball sifatida olinadi.",
-        "2) Ball p50 jadvali (KID_1..5) bilan solishtirilib domen yoshi tanlanadi.",
+        "1) Har so'rovnoma turi bo'yicha 1/2 javoblar soni ball sifatida olinadi.",
+        "2) Ball p50 jadvali (KID_1..5) bilan solishtirilib so'rovnoma turi yoshi tanlanadi.",
         "3) To‘liq ball KID_Full p50 orqali umumiy yoshga o‘tkaziladi.",
         "4) Sigma: p85/p96/p98 chegaralari bo‘yicha hisoblanadi.",
         "5) NA va qarama-qarshiliklar risk bahosiga qo‘shiladi.",
       ]
     : [
-        "1) Har domen bo‘yicha 1/2 javoblar ball hisoblanadi.",
+        "1) Har so'rovnoma turi bo'yicha 1/2 javoblar ball hisoblanadi.",
         "2) Jinsga mos ustunlar (SO/SE/GR/FI/EX/LA + B/G) ishlatiladi.",
-        "3) N ustuni bo‘yicha domen yoshi, W/L bo‘yicha level aniqlanadi.",
+        "3) N ustuni bo‘yicha so'rovnoma turi yoshi, W/L bo‘yicha level aniqlanadi.",
         "4) NA va qarama-qarshiliklar risk bahosiga qo‘shiladi.",
       ];
-  el.algoSteps.innerHTML = `<h4>Логика расчета (qadamlar)</h4>${steps.map((s) => `<div class=\"step-line\">${s}</div>`).join("")}`;
+  el.algoSteps.innerHTML = `<h4>Hisoblash logikasi (qadamlar)</h4>${steps.map((s) => `<div class=\"step-line\">${s}</div>`).join("")}`;
 
   const rows = test.result.domainAges || [];
   const hasLevel = rows.some((d) => typeof d.level !== "undefined");
   const head = hasLevel
-    ? "<tr><th>Домен</th><th>Баллы</th><th>Возраст домена</th><th>Разрыв</th><th>Уровень</th></tr>"
-    : "<tr><th>Домен</th><th>Баллы</th><th>Возраст домена</th><th>Разрыв</th></tr>";
+    ? "<tr><th>So'rovnoma turi</th><th>Ball</th><th>Hisoblangan yosh</th><th>Farq</th><th>Daraja</th><th>Qayerdan chiqdi</th></tr>"
+    : "<tr><th>So'rovnoma turi</th><th>Ball</th><th>Hisoblangan yosh</th><th>Farq</th><th>Qayerdan chiqdi</th></tr>";
   const body = rows
     .map((d) => {
       const lag = Number(d.lag ?? (test.factualAge - d.age));
       if (hasLevel) {
-        return `<tr><td>${d.name}</td><td>${d.points ?? "-"}</td><td>${d.age} мес</td><td>${round1(lag)} мес</td><td>${d.level ?? "-"}</td></tr>`;
+        return `<tr><td>${d.name}</td><td>${d.points ?? "-"}</td><td>${d.age} oy</td><td>${round1(lag)} oy</td><td>${d.level ?? "-"}</td><td>Ball -> p50; Daraja -> W/L yoki p85/p96</td></tr>`;
       }
-      return `<tr><td>${d.name}</td><td>${d.points ?? "-"}</td><td>${d.age} мес</td><td>${round1(lag)} мес</td></tr>`;
+      return `<tr><td>${d.name}</td><td>${d.points ?? "-"}</td><td>${d.age} oy</td><td>${round1(lag)} oy</td><td>Ball -> p50 jadvali</td></tr>`;
     })
     .join("");
   el.algoDomainTable.innerHTML = `<table class="table-tight"><thead>${head}</thead><tbody>${body}</tbody></table>`;
@@ -414,7 +415,7 @@ function renderAlgoPanel(test) {
   const ctr = test.contradictions || [];
   el.algoContradictions.innerHTML = ctr.length
     ? ctr.map((p) => `<span class="pair">${p[0]}-${p[1]}</span>`).join(" ")
-    : "Противоречий не найдено.";
+    : "Qarama-qarshi javob topilmadi.";
 
   const rec = recommendationsForTest(test);
   el.algoRecommendations.innerHTML = rec.map((x) => `<div>• ${x}</div>`).join("");
@@ -422,7 +423,7 @@ function renderAlgoPanel(test) {
 
   const qa = buildQuestionAudit(test);
   el.qaSummary.textContent = qa.summary;
-  el.qaBody.innerHTML = qa.rowsHtml || `<tr><td colspan="5">Данные недоступны.</td></tr>`;
+  el.qaBody.innerHTML = qa.rowsHtml || `<tr><td colspan="6">Ma'lumot yetarli emas.</td></tr>`;
 }
 
 function renderChildDetail() {
@@ -435,17 +436,17 @@ function renderChildDetail() {
 
   el.emptyState.classList.add("hidden");
   el.childDetail.classList.remove("hidden");
-  const fullName = `${c.surname || ""} ${c.name || ""}`.trim() || "Без имени";
+  const fullName = `${c.surname || ""} ${c.name || ""}`.trim() || "Ism kiritilmagan";
   el.childName.textContent = fullName;
-  el.childMeta.textContent = `Дата рождения: ${c.birthDate || "-"} | Пол: ${c.sex || "-"} | Регион: ${c.region || "-"} | Информатор: ${c.informer || "-"}`;
+  el.childMeta.textContent = `Tug'ilgan sana: ${c.birthDate || "-"} | Jins: ${c.sex || "-"} | Hudud: ${c.region || "-"} | Ma'lumot beruvchi: ${c.informer || "-"}`;
 
   const tests = getTestsByChild(c.id);
-  const high = tests.filter((t) => riskGrade(t) === "Высокий риск").length;
+  const high = tests.filter((t) => riskGrade(t) === "Yuqori xavf").length;
   const mid = tests.filter((t) => {
     const g = riskGrade(t);
-    return g === "Умеренный риск" || g === "Нужно перепроверить";
+    return g === "O'rtacha xavf" || g === "Qayta tekshirish kerak";
   }).length;
-  const good = tests.filter((t) => riskGrade(t) === "Норма / близко к норме").length;
+  const good = tests.filter((t) => riskGrade(t) === "Yaxshi holat").length;
   el.kpiTotal.textContent = String(tests.length);
   el.kpiHigh.textContent = String(high);
   el.kpiMid.textContent = String(mid);
@@ -457,11 +458,11 @@ function renderChildDetail() {
           (t) => {
             const grade = riskGrade(t);
             const tagClass = riskClass(grade);
-            return `<tr data-test-id="${t.id}" class="history-row${t.id === state.selectedTestId ? " active-row" : ""}"><td>${t.testDate}</td><td>${t.scale}</td><td>${t.factualAge} мес</td><td>${testSummary(t)} <span class="mini-badge ${tagClass}">${grade}</span></td><td>${t.naCount}</td><td>${t.contradictions.length}</td></tr>`;
+            return `<tr data-test-id="${t.id}" class="history-row${t.id === state.selectedTestId ? " active-row" : ""}"><td>${t.testDate}</td><td>${t.scale}</td><td>${t.factualAge} oy</td><td>${testSummary(t)} <span class="mini-badge ${tagClass}">${grade}</span></td><td>${t.naCount}</td><td>${t.contradictions.length}</td></tr>`;
           }
         )
         .join("")
-    : `<tr><td colspan="6">Пока нет тестов</td></tr>`;
+    : `<tr><td colspan="6">Hozircha test yo'q</td></tr>`;
 
   const rows = el.testHistory.querySelectorAll("tr[data-test-id]");
   rows.forEach((row) => {
@@ -483,7 +484,7 @@ function renderChildDetail() {
 
 function openChildDialog(editingChild = null) {
   state.editingChildId = editingChild?.id ?? null;
-  el.childDialogTitle.textContent = editingChild ? "Изменить ребенка" : "Новый ребенок";
+  el.childDialogTitle.textContent = editingChild ? "Bolani tahrirlash" : "Yangi bola";
   el.childForm.surname.value = editingChild?.surname ?? "";
   el.childForm.name.value = editingChild?.name ?? "";
   el.childForm.birthDate.value = editingChild?.birthDate ?? "";
@@ -512,7 +513,7 @@ function saveChildFromForm() {
   };
 
   if (child.birthDate && child.regDate && child.birthDate > child.regDate) {
-    alert("Дата регистрации не может быть раньше даты рождения.");
+    alert("Ro'yxatga olish sanasi tug'ilgan sanadan oldin bo'lishi mumkin emas.");
     return;
   }
 
@@ -636,8 +637,8 @@ function startTest(scale) {
     testDate: new Date().toISOString().slice(0, 10),
   };
 
-  el.testTitle.textContent = `Тест ${scale}: ${child.surname} ${child.name}`;
-  el.testMeta.textContent = `Дата теста: ${state.run.testDate}`;
+  el.testTitle.textContent = `${scale} testi: ${child.surname} ${child.name}`;
+  el.testMeta.textContent = `Test sanasi: ${state.run.testDate}`;
   el.testDialog.showModal();
   renderQuestion();
 }
@@ -669,7 +670,7 @@ function renderQuestion() {
     el.answerGrid.appendChild(d);
   }
 
-  el.answerHint.textContent = `Вопрос ${run.index} из ${total}. Текущий ответ: ${ANSWERS[run.answers[run.index]].label}`;
+  el.answerHint.textContent = `${run.index}/${total}-savol. Joriy javob: ${ANSWERS[run.answers[run.index]].label}`;
 }
 
 function finishTest() {
@@ -699,9 +700,9 @@ function finishTest() {
   state.db.tests.push(record);
   dbSave();
 
-  const domainLine = result.domainAges.map((d) => `${d.name}: ${d.age} мес`).join("\n");
-  const extra = run.scale === "KID" ? `\nПолная шкала: ${result.totalAge} мес\nSigma: ${result.sigma}` : "";
-  alert(`Тест сохранен.\n\n${domainLine}${extra}\n\nБез ответов: ${naCount}\nПротиворечий: ${contradictions.length}`);
+  const domainLine = result.domainAges.map((d) => `${d.name}: ${d.age} oy`).join("\n");
+  const extra = run.scale === "KID" ? `\nTo'liq shkala: ${result.totalAge} oy\nSigma: ${result.sigma}` : "";
+  alert(`Test saqlandi.\n\n${domainLine}${extra}\n\nBo'sh javob: ${naCount}\nQarama-qarshilik: ${contradictions.length}`);
 
   state.run = null;
   el.testDialog.close();
@@ -732,7 +733,7 @@ function attachEvents() {
     const blob = new Blob([JSON.stringify(state.db, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `rcdi-modern-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `rcdi-export-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -939,5 +940,6 @@ async function bootstrap() {
 
 bootstrap().catch((e) => {
   console.error(e);
-  alert("Инициализация не удалась. Запустите через локальный сервер, например: python -m http.server 4173");
+  alert("Ishga tushirishda xatolik. Lokal server orqali ishga tushiring, masalan: python -m http.server 4173");
 });
+

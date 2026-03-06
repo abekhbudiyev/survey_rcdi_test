@@ -3,82 +3,82 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RCDI KID Modern</title>
+  <title>RCDI KID Tizimi</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <header class="app-header">
     <div>
       <h1>RCDI KID Modern</h1>
-      <p>Новая версия опросника KID/CDI с локальным хранением</p>
+      <p>KID/CDI so'rovnomasi - mahalliy saqlash bilan yangi tizim</p>
     </div>
-    <button id="exportBtn" class="ghost">Экспорт JSON</button>
+    <button id="exportBtn" class="ghost">JSON eksport</button>
   </header>
 
   <main class="layout">
     <aside class="panel">
       <div class="panel-head">
-        <h2>Дети</h2>
-        <button id="newChildBtn">+ Добавить</button>
+        <h2>Bolalar</h2>
+        <button id="newChildBtn">+ Qo'shish</button>
       </div>
-      <input id="searchInput" placeholder="Поиск по имени" />
+      <input id="searchInput" placeholder="Ism bo'yicha qidirish" />
       <ul id="childList" class="list"></ul>
     </aside>
 
     <section class="panel" id="detailPanel">
-      <div id="emptyState" class="empty">Выберите ребенка из списка</div>
+      <div id="emptyState" class="empty">Ro'yxatdan bolani tanlang</div>
 
       <div id="childDetail" class="hidden">
         <div class="panel-head">
           <h2 id="childName"></h2>
           <div class="actions">
-            <button id="editChildBtn" class="ghost">Изменить</button>
-            <button id="startKidBtn">Тест KID</button>
-            <button id="startCdiBtn">Тест CDI</button>
+            <button id="editChildBtn" class="ghost">Tahrirlash</button>
+            <button id="startKidBtn">KID testi</button>
+            <button id="startCdiBtn">CDI testi</button>
           </div>
         </div>
 
         <div class="meta" id="childMeta"></div>
         <div class="kpi-grid">
           <div class="kpi-card">
-            <div class="kpi-label">Всего тестов</div>
+            <div class="kpi-label">Jami testlar</div>
             <div id="kpiTotal" class="kpi-value">0</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-label">Высокий риск</div>
+            <div class="kpi-label">Yuqori xavf</div>
             <div id="kpiHigh" class="kpi-value">0</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-label">Умеренный риск</div>
+            <div class="kpi-label">O'rtacha xavf</div>
             <div id="kpiMid" class="kpi-value">0</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-label">Норма</div>
+            <div class="kpi-label">Yaxshi holat</div>
             <div id="kpiGood" class="kpi-value">0</div>
           </div>
         </div>
 
         <div class="legend">
-          <span class="mini-badge risk-danger">Высокий риск</span>
-          <span class="mini-badge risk-warning">Умеренный риск</span>
-          <span class="mini-badge risk-good">Норма</span>
+          <span class="mini-badge risk-danger">Yuqori xavf</span>
+          <span class="mini-badge risk-warning">O'rtacha xavf</span>
+          <span class="mini-badge risk-good">Yaxshi holat</span>
         </div>
 
         <section id="resultSnapshot" class="snapshot hidden">
-          <h3>Текущий выбранный результат</h3>
+          <h3>Tanlangan natija (qisqa ko'rinish)</h3>
           <div id="snapshotBody" class="card-lite"></div>
         </section>
 
-        <h3>Результаты</h3>
+        <h3>Natijalar</h3>
         <table>
           <thead>
             <tr>
-              <th>Дата</th>
-              <th>Шкала</th>
-              <th>Возраст</th>
-              <th>Итог</th>
-              <th>Пробелы</th>
-              <th>Противоречия</th>
+              <th>Sana</th>
+              <th>Shkala</th>
+              <th>Yosh</th>
+              <th>Yakun</th>
+              <th>Bo'sh javob</th>
+              <th>Qarama-qarshilik</th>
             </tr>
           </thead>
           <tbody id="testHistory"></tbody>
@@ -86,7 +86,7 @@
 
         <section id="algoPanel" class="algo-panel hidden">
           <div class="panel-head">
-            <h3>Алгоритм и рекомендации</h3>
+            <h3>Algoritm va tavsiyalar</h3>
             <span id="algoBadge" class="badge"></span>
           </div>
           <div id="algoTop" class="algo-top"></div>
@@ -94,17 +94,17 @@
           <div id="algoDomainTable"></div>
           <div class="algo-grid">
             <div>
-              <h4>Противоречия</h4>
+              <h4>Qarama-qarshi javoblar</h4>
               <div id="algoContradictions" class="card-lite"></div>
             </div>
             <div>
-              <h4>Рекомендации</h4>
+              <h4>Tavsiyalar</h4>
               <div id="algoRecommendations" class="card-lite"></div>
             </div>
           </div>
           <section class="qa-panel">
             <div class="panel-head">
-              <h4>Аудит ответов по вопросам</h4>
+              <h4>Savol-javob auditi</h4>
               <span id="qaSummary" class="chip"></span>
             </div>
             <div class="qa-wrap">
@@ -112,10 +112,11 @@
                 <thead>
                   <tr>
                     <th>№</th>
-                    <th>Вопрос</th>
-                    <th>Ответ</th>
-                    <th>Статус</th>
-                    <th>Влияние (если без ответа)</th>
+                    <th>Savol</th>
+                    <th>So'rovnoma turi</th>
+                    <th>Javob</th>
+                    <th>Holat</th>
+                    <th>Ta'sir (javobsiz bo'lsa)</th>
                   </tr>
                 </thead>
                 <tbody id="qaBody"></tbody>
@@ -123,7 +124,7 @@
             </div>
           </section>
           <details>
-            <summary>Сырые ответы</summary>
+            <summary>Xom javoblar</summary>
             <pre id="algoAnswers"></pre>
           </details>
         </section>
@@ -133,26 +134,26 @@
 
   <dialog id="childDialog">
     <form id="childForm" method="dialog">
-      <h3 id="childDialogTitle">Новый ребенок</h3>
+      <h3 id="childDialogTitle">Yangi bola</h3>
       <div class="grid2">
-        <label>Фамилия<input name="surname" required /></label>
-        <label>Имя<input name="name" required /></label>
-        <label>Дата рождения<input type="date" name="birthDate" required /></label>
-        <label>Дата регистрации<input type="date" name="regDate" required /></label>
-        <label>Пол
+        <label>Familiya<input name="surname" required /></label>
+        <label>Ism<input name="name" required /></label>
+        <label>Tug'ilgan sana<input type="date" name="birthDate" required /></label>
+        <label>Ro'yxatga olingan sana<input type="date" name="regDate" required /></label>
+        <label>Jinsi
           <select name="sex" required>
-            <option value="мужской">мужской</option>
-            <option value="женский">женский</option>
+            <option value="мужской">erkak</option>
+            <option value="женский">ayol</option>
           </select>
         </label>
-        <label>Телефон<input name="phone" /></label>
-        <label>Адрес<input name="address" /></label>
-        <label>Регион<input name="region" /></label>
-        <label>Информатор<input name="informer" /></label>
+        <label>Telefon<input name="phone" /></label>
+        <label>Manzil<input name="address" /></label>
+        <label>Hudud<input name="region" /></label>
+        <label>Ma'lumot beruvchi<input name="informer" /></label>
       </div>
       <div class="dlg-actions">
-        <button value="cancel" class="ghost">Отмена</button>
-        <button id="saveChildBtn" value="default">Сохранить</button>
+        <button value="cancel" class="ghost">Bekor qilish</button>
+        <button id="saveChildBtn" value="default">Saqlash</button>
       </div>
     </form>
   </dialog>
@@ -161,17 +162,17 @@
     <div id="testWrap">
       <div class="panel-head">
         <h3 id="testTitle"></h3>
-        <button id="closeTestBtn" class="ghost">Закрыть</button>
+        <button id="closeTestBtn" class="ghost">Yopish</button>
       </div>
       <div class="meta" id="testMeta"></div>
       <div class="progress"><div id="progressBar"></div></div>
       <p id="questionText" class="question"></p>
       <div class="answer-grid" id="answerGrid"></div>
       <div class="pager">
-        <button id="prevQBtn" class="ghost">Назад</button>
+        <button id="prevQBtn" class="ghost">Orqaga</button>
         <label>№<input id="jumpInput" type="number" min="1" /></label>
-        <button id="nextQBtn" class="ghost">Вперед</button>
-        <button id="finishBtn">Завершить</button>
+        <button id="nextQBtn" class="ghost">Oldinga</button>
+        <button id="finishBtn">Yakunlash</button>
       </div>
       <p id="answerHint" class="hint"></p>
     </div>
