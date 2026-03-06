@@ -1,0 +1,156 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RCDI KID Modern</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>RCDI KID Modern</h1>
+      <p>Новая версия опросника KID/CDI с локальным хранением</p>
+    </div>
+    <button id="exportBtn" class="ghost">Экспорт JSON</button>
+  </header>
+
+  <main class="layout">
+    <aside class="panel">
+      <div class="panel-head">
+        <h2>Дети</h2>
+        <button id="newChildBtn">+ Добавить</button>
+      </div>
+      <input id="searchInput" placeholder="Поиск по имени" />
+      <ul id="childList" class="list"></ul>
+    </aside>
+
+    <section class="panel" id="detailPanel">
+      <div id="emptyState" class="empty">Выберите ребенка из списка</div>
+
+      <div id="childDetail" class="hidden">
+        <div class="panel-head">
+          <h2 id="childName"></h2>
+          <div class="actions">
+            <button id="editChildBtn" class="ghost">Изменить</button>
+            <button id="startKidBtn">Тест KID</button>
+            <button id="startCdiBtn">Тест CDI</button>
+          </div>
+        </div>
+
+        <div class="meta" id="childMeta"></div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Всего тестов</div>
+            <div id="kpiTotal" class="kpi-value">0</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Высокий риск</div>
+            <div id="kpiHigh" class="kpi-value">0</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Умеренный риск</div>
+            <div id="kpiMid" class="kpi-value">0</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Норма</div>
+            <div id="kpiGood" class="kpi-value">0</div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span class="mini-badge risk-danger">Высокий риск</span>
+          <span class="mini-badge risk-warning">Умеренный риск</span>
+          <span class="mini-badge risk-good">Норма</span>
+        </div>
+
+        <h3>Результаты</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Шкала</th>
+              <th>Возраст</th>
+              <th>Итог</th>
+              <th>Пробелы</th>
+              <th>Противоречия</th>
+            </tr>
+          </thead>
+          <tbody id="testHistory"></tbody>
+        </table>
+
+        <section id="algoPanel" class="algo-panel hidden">
+          <div class="panel-head">
+            <h3>Алгоритм и рекомендации</h3>
+            <span id="algoBadge" class="badge"></span>
+          </div>
+          <div id="algoTop" class="algo-top"></div>
+          <div id="algoDomainTable"></div>
+          <div class="algo-grid">
+            <div>
+              <h4>Противоречия</h4>
+              <div id="algoContradictions" class="card-lite"></div>
+            </div>
+            <div>
+              <h4>Рекомендации</h4>
+              <div id="algoRecommendations" class="card-lite"></div>
+            </div>
+          </div>
+          <details>
+            <summary>Сырые ответы</summary>
+            <pre id="algoAnswers"></pre>
+          </details>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="childDialog">
+    <form id="childForm" method="dialog">
+      <h3 id="childDialogTitle">Новый ребенок</h3>
+      <div class="grid2">
+        <label>Фамилия<input name="surname" required /></label>
+        <label>Имя<input name="name" required /></label>
+        <label>Дата рождения<input type="date" name="birthDate" required /></label>
+        <label>Дата регистрации<input type="date" name="regDate" required /></label>
+        <label>Пол
+          <select name="sex" required>
+            <option value="мужской">мужской</option>
+            <option value="женский">женский</option>
+          </select>
+        </label>
+        <label>Телефон<input name="phone" /></label>
+        <label>Адрес<input name="address" /></label>
+        <label>Регион<input name="region" /></label>
+        <label>Информатор<input name="informer" /></label>
+      </div>
+      <div class="dlg-actions">
+        <button value="cancel" class="ghost">Отмена</button>
+        <button id="saveChildBtn" value="default">Сохранить</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="testDialog">
+    <div id="testWrap">
+      <div class="panel-head">
+        <h3 id="testTitle"></h3>
+        <button id="closeTestBtn" class="ghost">Закрыть</button>
+      </div>
+      <div class="meta" id="testMeta"></div>
+      <div class="progress"><div id="progressBar"></div></div>
+      <p id="questionText" class="question"></p>
+      <div class="answer-grid" id="answerGrid"></div>
+      <div class="pager">
+        <button id="prevQBtn" class="ghost">Назад</button>
+        <label>№<input id="jumpInput" type="number" min="1" /></label>
+        <button id="nextQBtn" class="ghost">Вперед</button>
+        <button id="finishBtn">Завершить</button>
+      </div>
+      <p id="answerHint" class="hint"></p>
+    </div>
+  </dialog>
+
+  <script src="./app.js" type="module"></script>
+</body>
+</html>
